@@ -1,8 +1,6 @@
 import axios from "axios";
+import { Episode } from "../types/Episode";
 import { Recommendation } from "../types/Recommendation";
-
-const recoSectionRegex = /jakson valinnat(\s.+)/gi;
-const recosAndAuthorRegex = /\s(\w+):\s(.+?)(?=$|\s\w+:\s)/gi;
 
 
 export const getAllRecommendations = async () => {
@@ -10,18 +8,28 @@ export const getAllRecommendations = async () => {
 
     // Parse recommendations out of the episodes
     const recos: Recommendation[] = [];
-    episodes.forEach((episode: any) => {
+    episodes.forEach((episode: Episode) => {
+        // The regexes need to be declared in again for every iteration.
+        // This little "feature" ate like 3 hours of my time :(
+        // For more information: https://stackoverflow.com/questions/11477415/why-does-javascripts-regex-exec-not-always-return-the-same-value
+        const recoSectionRegex = /jakson\svalinnat:?[\n\s\t\r*-]+(.+?)(?=$|##)/gis;
+        const recosAndAuthorRegex = /(\w+):[\n\s*-]+(.+?)(?=$|[\n\s*-]+\w+:)/gis;
+
         // Get the recommendation section
-        const recoSectionMatchs = (episode.long_description as string).matchAll(recoSectionRegex).next().value;
-        if (!recoSectionMatchs) {
+        const recoSectionMatch = recoSectionRegex.exec(episode.long_description);
+        if (!recoSectionMatch) {
             console.error(`Couldn't find recommendation section for episode ${episode.number}`);
             return;
         }
-        const recoSection = recoSectionMatchs[1] as string; // No idea why the group array would be 'any', but seems like this is necessary
+        const recoSection = recoSectionMatch[1];
 
-        // Extract the authors and the recommendations itself
+        // Extract the authors and the recommendations
         // NOTE: (Two recommendations made by the same author will be classified as one recommendation.)
         const recoAndAuthorMatchs = [...recoSection.matchAll(recosAndAuthorRegex)];
+        if (recoAndAuthorMatchs.length === 0) {
+            console.error(`Couldn't find recommendations or authors for episode ${episode.number}`);
+            return;
+        }
         recoAndAuthorMatchs.forEach((match) => {
             recos.push({
                 episodeNumber: episode.number,
