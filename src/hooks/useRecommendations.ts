@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { Option } from "react-select/src/filters";
 import { getAllRecommendations } from "../services/recommendation.service";
 import { Recommendation } from "../types/Recommendation";
 
-export const useRecommendations = (searchTerm: string) => {
+export const useRecommendations = () => {
     const [recommendations, setRecommendations] = useState<Recommendation[] | null>(null);
-    const [filteredRecommendations, setFilteredRecommendations] = useState<Recommendation[] | null>(null);
+    const [recommendationOptions, setRecommendationOptions] = useState<Option[] | null>(null);
     
     // Get all recommendations
     useEffect(() => {
@@ -14,16 +15,18 @@ export const useRecommendations = (searchTerm: string) => {
         effect();
     }, []);
 
-    // Filter recommendations
+    // Get all recommendations
     useEffect(() => {
         if (!recommendations) return;
-
-        setFilteredRecommendations(recommendations.filter(reco => {
-            return reco.recommendation.toLowerCase().includes(searchTerm);
-        }));
-    }, [recommendations, searchTerm]);
+        setRecommendationOptions(recommendations.map(reco => ({
+            label: reco.recommendation,
+            value: reco.recommendation,
+            data: reco,
+        })));
+    }, [recommendations]);
 
     return {
-        filteredRecommendations,
+        recommendations,
+        recommendationOptions,
     };
 };
